@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coğrafi Metot Zinciri: Mekânsal Veriden Bilimsel Kanıta</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            geo: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              violet: '#8b5cf6',
+              rose: '#f43f5e'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .glow-cyan { box-shadow: 0 0 25px -4px rgba(6, 182, 212, 0.35); }
+    .glow-emerald { box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.35); }
+    .glow-amber { box-shadow: 0 0 25px -4px rgba(245, 158, 11, 0.35); }
+    .glow-violet { box-shadow: 0 0 25px -4px rgba(139, 92, 246, 0.35); }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.6); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-emerald-500/30 selection:text-emerald-300">
+
+  <!-- Top Navigation & Controls -->
+  <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand & Badges -->
+      <div class="flex items-center space-x-3.5">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-emerald-500 to-amber-500 p-[2px] shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+            <i data-lucide="map" class="w-5 h-5 text-emerald-400"></i>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-extrabold tracking-widest uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              COĞRAFİ METOT ZİNCİRİ
+            </span>
+            <span class="text-xs text-slate-400 hidden sm:inline font-mono">CBS & Yerbilimleri v3.0</span>
+          </div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-cyan-300 via-emerald-300 to-amber-300 bg-clip-text text-transparent">
+            Mekânsal Veri ➔ Örüntü ➔ Önerme ➔ Modelleme & Kanıt
+          </h1>
+        </div>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="flex items-center flex-wrap gap-2.5">
+        
+        <!-- Scenario Selector Dropdown -->
+        <div class="relative flex items-center">
+          <i data-lucide="layers" class="w-4 h-4 text-emerald-400 absolute left-3 pointer-events-none"></i>
+          <select id="scenarioSelect" class="bg-slate-800 text-slate-200 border border-slate-700 text-xs sm:text-sm rounded-xl pl-9 pr-8 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none appearance-none cursor-pointer hover:border-slate-600 transition">
+            <option value="landslide">⛰️ Heyelan & Eğim Duyarlılığı (Doğu Karadeniz)</option>
+            <option value="urban_heat">🏙️ Kentleşme & Kentsel Isı Adası (LST)</option>
+            <option value="sinkhole">🕳️ Karstik Obruk Oluşumu & Yeraltı Suyu (Konya)</option>
+            <option value="tectonics">🌋 Levha Tektoniği & Fay Kuşakları Dağılımı</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none"></i>
+        </div>
+
+        <!-- Quiz Trigger -->
+        <button id="openQuizBtn" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition">
+          <i data-lucide="check-check" class="w-4 h-4"></i>
+          <span class="hidden md:inline">Coğrafi Test</span>
+          <span class="md:hidden">Test</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" title="Tema Değiştir" class="p-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition">
+          <i data-lucide="sun" id="themeSun" class="w-4 h-4 hidden"></i>
+          <i data-lucide="moon" id="themeMoon" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Hero Concept Banner -->
+    <div class="text-center max-w-3xl mx-auto space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>Tobler'ın 1. Kanunu & Mekânsal Analiz Paradigmaları</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-50 tracking-tight leading-tight">
+        Coğrafyada Bilimsel Düşüncenin <span class="bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-400 bg-clip-text text-transparent">Dört Halkası</span>
+      </h2>
+      <p class="text-slate-400 text-xs sm:text-sm md:text-base leading-relaxed">
+        Coğrafya yalnızca yer tasviri değildir; mekândaki olayların dağılışını (veri), kümelenme ve yönelimlerini (örüntü), nedensellik bağlarını (hipotez) ve CBS simülasyonları ile saha doğrulamalarını (kanıtlama) kapsayan analitik bir bilimdir.
+      </p>
+    </div>
+
+    <!-- 4 Main Cards: Data -> Pattern -> Hypothesis -> Proof -->
+    <div class="relative">
+      
+      <!-- Background Connecting Line for Desktop -->
+      <div class="hidden lg:block absolute top-1/2 left-10 right-10 h-0.5 bg-gradient-to-r from-cyan-500/40 via-emerald-500/40 via-amber-500/40 to-violet-500/40 -translate-y-8 z-0"></div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
+
+        <!-- 01: MEKÂNSAL VERİ -->
+        <div id="card-0" onclick="selectStep(0)" class="step-card group cursor-pointer relative bg-slate-900/90 rounded-2xl p-5 border-2 border-cyan-500/40 hover:border-cyan-400 transition-all duration-300 glow-cyan shadow-xl flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-mono font-bold text-sm border border-cyan-500/30">
+                01
+              </div>
+              <span class="text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-md bg-cyan-950 text-cyan-300 border border-cyan-800">
+                MEKÂNSAL VERİ
+              </span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="satellite" class="w-4 h-4 text-cyan-400"></i>
+                <h3 class="text-xl font-bold text-slate-100 group-hover:text-cyan-300 transition">Veri (Spatial Data)</h3>
+              </div>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                Yeryüzünden toplanan coğrafi koordinatlı pikseller, Sayısal Yükseklik Modelleri (DEM), uydu spektral bantları ve meteoroloji istasyonu kayıtlarıdır.
+              </p>
+            </div>
+
+            <!-- Mini Widget: Raster / Coordinate Inspector -->
+            <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800">
+              <div class="text-[10px] font-mono text-cyan-400/80 flex items-center justify-between mb-1.5">
+                <span>CBS KATMANLARI (RASTER / DEM)</span>
+                <span class="animate-pulse text-emerald-400 text-[9px]">● SENTINEL-2</span>
+              </div>
+              <div id="dataMiniStream" class="h-14 font-mono text-[10px] text-slate-400 flex flex-col justify-center space-y-0.5 overflow-hidden">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Scenario Snippet -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">ÖRNEK MEKÂNSAL SENARYO</span>
+              <p id="scenario-text-0" class="text-xs italic text-cyan-200/90 font-medium leading-snug">
+                "30m çözünürlüklü SRTM DEM verisi, Sentinel-2 Multispektral bantları ve 48 istasyona ait son 30 yıllık yağış ölçüm serisi."
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 flex items-center justify-between text-xs text-cyan-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+            <span>Katmanları İncele</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </div>
+        </div>
+
+        <!-- 02: MEKÂNSAL ÖRÜNTÜ -->
+        <div id="card-1" onclick="selectStep(1)" class="step-card group cursor-pointer relative bg-slate-900/90 rounded-2xl p-5 border-2 border-slate-800 hover:border-emerald-400/80 transition-all duration-300 shadow-xl flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-bold text-sm border border-emerald-500/30">
+                02
+              </div>
+              <span class="text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800">
+                DAĞILIŞ & EĞİLİM
+              </span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i>
+                <h3 class="text-xl font-bold text-slate-100 group-hover:text-emerald-300 transition">Mekânsal Örüntü</h3>
+              </div>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                Coğrafi verilerin mekânda gösterdiği kümelenmeler, sıcak noktalar (Hot-Spot / Getis-Ord Gi*), çizgisellikler ve otokorelasyon eğilimleridir.
+              </p>
+            </div>
+
+            <!-- Mini Widget: Canvas Spatial Point Cluster Simulation -->
+            <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800">
+              <div class="text-[10px] font-mono text-emerald-400/80 flex items-center justify-between mb-1">
+                <span>SICAK NOKTA (MORAN'S I)</span>
+                <span id="moranVal" class="text-[10px] text-emerald-400 font-bold">I = +0.81 (Kümelenmiş)</span>
+              </div>
+              <canvas id="miniSpatialCanvas" width="180" height="56" class="w-full h-14 rounded-lg bg-slate-900"></canvas>
+            </div>
+
+            <!-- Scenario Snippet -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">ÖRNEK MEKÂNSAL SENARYO</span>
+              <p id="scenario-text-1" class="text-xs italic text-emerald-200/90 font-medium leading-snug">
+                "Heyelanların rastgele değil, %35 üzeri eğimli ve kuzey-kuzeydoğu bakılı yamaçlarda yoğunlaştığının (kümelendiğinin) keşfi."
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 flex items-center justify-between text-xs text-emerald-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+            <span>Dağılışı Analiz Et</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </div>
+        </div>
+
+        <!-- 03: COĞRAFİ ÖNERME / HİPOTEZ -->
+        <div id="card-2" onclick="selectStep(2)" class="step-card group cursor-pointer relative bg-slate-900/90 rounded-2xl p-5 border-2 border-slate-800 hover:border-amber-400/80 transition-all duration-300 shadow-xl flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-mono font-bold text-sm border border-amber-500/30">
+                03
+              </div>
+              <span class="text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-md bg-amber-950 text-amber-300 border border-amber-800">
+                NEDENSELLİK İDDİASI
+              </span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="git-merge" class="w-4 h-4 text-amber-400"></i>
+                <h3 class="text-xl font-bold text-slate-100 group-hover:text-amber-300 transition">Coğrafi Hipotez</h3>
+              </div>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                Mekândaki bu örüntünün ardındaki fiziki veya beşerî coğrafi mekanizmayı kuran, sınanabilir nedensellik modelidir.
+              </p>
+            </div>
+
+            <!-- Mini Widget: Geographical Cause-Effect Path -->
+            <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800">
+              <div class="text-[10px] font-mono text-amber-400/80 flex items-center justify-between mb-1.5">
+                <span>MEKÂNSAL NEDENSELLİK BAĞI</span>
+                <span class="text-[10px] text-amber-400">Tetikleyici Faktör</span>
+              </div>
+              <div class="flex items-center justify-between gap-1 text-[10px] py-1">
+                <span class="bg-slate-800 px-1.5 py-1 rounded text-amber-200">Eğim &gt; %35</span>
+                <i data-lucide="plus" class="w-3 h-3 text-amber-400"></i>
+                <span class="bg-slate-800 px-1.5 py-1 rounded text-amber-200">Killi Zemin</span>
+                <i data-lucide="arrow-right" class="w-3 h-3 text-amber-400 animate-pulse"></i>
+                <span class="bg-amber-950/80 border border-amber-800/80 px-1.5 py-1 rounded text-amber-200 font-bold">Kütle Hareketi</span>
+              </div>
+            </div>
+
+            <!-- Scenario Snippet -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">ÖRNEK MEKÂNSAL SENARYO</span>
+              <p id="scenario-text-2" class="text-xs italic text-amber-200/90 font-medium leading-snug">
+                "Killi litoloji ve dik eğim zemininde, 24 saatte 100 mm'yi aşan sağanak yağışlar kayma düzlemini doygunlaştırarak heyelanı tetikler."
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 flex items-center justify-between text-xs text-amber-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+            <span>Hipotezi Sına</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </div>
+        </div>
+
+        <!-- 04: CBS & KANITLAMA -->
+        <div id="card-3" onclick="selectStep(3)" class="step-card group cursor-pointer relative bg-slate-900/90 rounded-2xl p-5 border-2 border-slate-800 hover:border-violet-400/80 transition-all duration-300 shadow-xl flex flex-col justify-between">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-9 h-9 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center font-mono font-bold text-sm border border-violet-500/30">
+                04
+              </div>
+              <span class="text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-md bg-violet-950 text-violet-300 border border-violet-800">
+                CBS & MODELLEME
+              </span>
+            </div>
+
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="globe-2" class="w-4 h-4 text-violet-400"></i>
+                <h3 class="text-xl font-bold text-slate-100 group-hover:text-violet-300 transition">Kanıtlama & Test</h3>
+              </div>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                CBS tabanlı Çok Kriterli Karar Verme (AHP), Lojistik Regresyon, Makine Öğrenimi (Random Forest) ve InSAR radar doğrulamasıdır.
+              </p>
+            </div>
+
+            <!-- Mini Widget: Model Metrics (ROC-AUC / Field Validation) -->
+            <div class="bg-slate-950/80 rounded-xl p-2.5 border border-slate-800">
+              <div class="text-[10px] font-mono text-violet-400/80 flex items-center justify-between mb-1.5">
+                <span>MODEL TESTİ (ROC-AUC)</span>
+                <span class="text-[10px] text-violet-300 font-bold">AUC: 0.92</span>
+              </div>
+              <div class="flex items-center gap-2 bg-violet-950/40 border border-violet-800/40 p-1.5 rounded-lg">
+                <div class="w-2.5 h-2.5 rounded-full bg-violet-400 animate-ping"></div>
+                <span class="text-xs font-mono font-bold text-violet-200">Saha Doğrulaması: %92.4</span>
+              </div>
+            </div>
+
+            <!-- Scenario Snippet -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">ÖRNEK MEKÂNSAL SENARYO</span>
+              <p id="scenario-text-3" class="text-xs italic text-violet-200/90 font-medium leading-snug">
+                "Sentinel-1 InSAR milimetrik yeryüzü deformasyonu ve AHP tabanlı heyelan duyarlılık haritasının sahada %92 doğrulukla teyidi."
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 flex items-center justify-between text-xs text-violet-400 font-semibold group-hover:translate-x-0.5 transition-transform">
+            <span>Modeli Çalıştır</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Detailed Methodology & Interactive GIS Sandbox Panel -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative overflow-hidden transition-all duration-300">
+      
+      <!-- Detail Topbar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800">
+        <div class="flex items-center space-x-3.5">
+          <div id="detailIconBox" class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <i data-lucide="satellite" id="detailStepIcon" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="detailBadge" class="text-[11px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                01. HALKA ANALİZİ
+              </span>
+              <span class="text-xs text-slate-400">Coğrafi Metodoloji ve Mekânsal Teori</span>
+            </div>
+            <h3 id="detailTitle" class="text-2xl sm:text-3xl font-extrabold text-slate-100 mt-0.5">
+              Mekânsal Veri (Spatial Data): Coğrafyanın Sayısal Temeli
+            </h3>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="resetFlow()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Başa Dön</span>
+          </button>
+          <button id="nextStepBtn" onclick="nextStep()" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition">
+            <span>Sonraki Aşama</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Grid Columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
+        
+        <!-- Left: Geographical Principles & Scientific Background (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+              <i data-lucide="compass" class="w-3.5 h-3.5 text-emerald-400"></i>
+              Mekânsal Rol & Coğrafi Tanım
+            </h4>
+            <p id="detailRole" class="text-slate-300 text-sm sm:text-base leading-relaxed">
+              Coğrafi veriyi sıradan tablolardan ayıran temel unsur koordinat ve mekânsal referanstır (WGS84, UTM). Yeryüzündeki her olgu piksel (Raster) veya nokta/çizgi/poligon (Vektör) olarak dijitalleştirilir.
+            </p>
+          </div>
+
+          <!-- GIS Laws & Principles -->
+          <div class="bg-slate-950/60 rounded-2xl p-4 sm:p-5 border border-slate-800/80">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+              <i data-lucide="book-marked" class="w-3.5 h-3.5 text-cyan-400"></i>
+              Mekânsal Teori & Coğrafya Yasası
+            </h4>
+            <div id="detailPhilosophy" class="text-slate-300 text-xs sm:text-sm leading-relaxed space-y-1">
+              <strong>Tobler'ın 1. Coğrafya Kanunu:</strong> "Her şey birbiriyle ilişkilidir; ancak yakın olan şeyler, uzak olan şeylere göre daha çok ilişkilidir." Mekânsal otokorelasyon ve coğrafi modellemelerin ana dayanağıdır.
+            </div>
+          </div>
+
+          <!-- Geographical Pitfalls / MAUP -->
+          <div class="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-4 sm:p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1.5">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+              Coğrafi Analizlerde Kritik Hata & Tuzak
+            </h4>
+            <p id="detailPitfall" class="text-amber-200/90 text-xs sm:text-sm leading-relaxed">
+              <strong>MAUP (Değişken Alansal Birim Problemi):</strong> Mekânsal verinin sınırları (ilçe, havza, grid hücresi) değiştiğinde korelasyon sonuçları yapay olarak değişebilir. Ölçek ve agregasyon titizlikle seçilmelidir.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Right: Interactive Geographical Sandbox & Simulation (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-950/90 rounded-2xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+          
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <span class="text-xs font-bold tracking-wider uppercase text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-4 h-4 text-emerald-400"></i>
+                Coğrafi Simülatör & Hesaplayıcı
+              </span>
+              <span id="sandboxBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-300 border border-slate-700">
+                Aşama 1: Katman Yöneticisi
+              </span>
+            </div>
+
+            <!-- Dynamic Sandbox Area -->
+            <div id="sandboxArea" class="py-4 space-y-3">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+
+          <!-- Dynamic Status Output -->
+          <div id="sandboxFeedback" class="bg-slate-900 rounded-xl p-3 border border-slate-800 text-xs font-mono text-slate-300 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+            <span id="sandboxFeedbackText">Yeni mekânsal katmanlar yükleniyor...</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Epistemic Pillars in Modern Geography -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+      
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
+        <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+        </div>
+        <h4 class="text-base font-bold text-slate-100 mb-1">Mekânsal Örtüştürme (Overlay)</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Jeoloji, eğim, yağış ve bitki örtüsü gibi çoklu bağımsız raster katmanlarının mekânda üst üste bindirilerek kesişim bölgelerinin hassas biçimde izole edilmesidir.
+        </p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+        </div>
+        <h4 class="text-base font-bold text-slate-100 mb-1">Moran's I & Kümelenme</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Benzer değerlerin coğrafyada kümelenip kümelenmediğini ölçen istatistiki endekstir. +1 yüksek pozitif kümelenmeyi (Sıcak/Soğuk Noktalar), -1 ise satranç tahtası gibi dağılmışlığı gösterir.
+        </p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3">
+          <i data-lucide="crosshair" class="w-4 h-4"></i>
+        </div>
+        <h4 class="text-base font-bold text-slate-100 mb-1">Yerel Doğrulama (Ground Truthing)</h4>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Uzaktan algılama veya CBS modelleriyle üretilen haritaların arazide GPS, sondaj ve İHA ile teyit edilmesidir. Yer doğrulaması olmadan hiçbir mekânsal model kanıtlanmış sayılmaz.
+        </p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Geography Quiz Modal -->
+  <div id="quizModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl relative">
+      
+      <button onclick="closeQuiz()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="space-y-4">
+        <div class="flex items-center gap-2 text-emerald-400">
+          <i data-lucide="award" class="w-5 h-5"></i>
+          <span class="text-xs font-bold uppercase tracking-wider font-mono">Coğrafi Metot Bilgi Testi</span>
+        </div>
+
+        <h3 id="quizQuestion" class="text-lg font-bold text-slate-100">
+          Soru Yükleniyor...
+        </h3>
+
+        <!-- Options Container -->
+        <div id="quizOptions" class="space-y-2.5 pt-2">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Quiz Progress -->
+        <div class="pt-4 flex items-center justify-between border-t border-slate-800 text-xs text-slate-400">
+          <span id="quizProgressText">Soru 1 / 3</span>
+          <span id="quizScoreText" class="font-mono text-emerald-400 font-bold">Skor: 0</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 mt-16 py-8 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>Coğrafi Bilgi Teknolojileri ve Mekânsal Metot • v3.0 İnfografik</span>
+      </div>
+      <div>
+        Fiziki Coğrafya, Jeomorfoloji, Hidroloji ve CBS araştırmacıları için tasarlanmıştır.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // State management
+    let currentStep = 0;
+    let currentScenario = 'landslide';
+    let isDarkMode = true;
+
+    // 4 Geography Scenarios
+    const scenarios = {
+      landslide: {
+        title: "⛰️ Heyelan & Eğim Duyarlılığı (Doğu Karadeniz)",
+        steps: [
+          "30m çözünürlüklü SRTM DEM verisi, Sentinel-2 Multispektral bantları ve 48 istasyona ait son 30 yıllık yağış ölçüm serisi.",
+          "Heyelanların rastgele değil, %35 üzeri eğimli ve kuzey-kuzeydoğu bakılı yamaçlarda yoğunlaştığının (kümelendiğinin) keşfi.",
+          "Killi litoloji ve dik eğim zemininde, 24 saatte 100 mm'yi aşan sağanak yağışlar kayma düzlemini doygunlaştırarak heyelanı tetikler.",
+          "Sentinel-1 InSAR milimetrik yeryüzü deformasyonu ve AHP tabanlı heyelan duyarlılık haritasının sahada %92 doğrulukla teyidi."
+        ],
+        metrics: [
+          "Katman 1: Eğim Raster (%38 dik yamaçlar)",
+          "Katman 2: Litoloji (Ayrışmış Killi Fliş)",
+          "Katman 3: 24h Kümülatif Yağış: 114.2 mm"
+        ]
+      },
+      urban_heat: {
+        title: "🏙️ Kentleşme & Kentsel Isı Adası (LST)",
+        steps: [
+          "Landsat-9 Termal Kızılötesi (TIRS) sensörü ile elde edilen Yüzey Sıcaklığı (LST) ve NDVI (Bitki Örtüsü) raster katmanları.",
+          "Betonlaşmış ve asfalt yüzeylerde sıcaklığın, 2 km mesafedeki kent ormanlarına göre 4.8°C daha yüksek olduğunun mekânsal tespiti.",
+          "Albedo düşüşü ve geçirimsiz yüzeylerin artışı, gündüz emilen güneş radyasyonunun gece salınarak ısı adası oluşturmasına neden olur.",
+          "Sabit meteoroloji istasyonları, mobil termal ölçüm araçları ve Random Forest regresyonu ile %94.1 korelasyonlu ispat."
+        ],
+        metrics: [
+          "Landsat TIRS Band 10: Piksel LST 38.6°C",
+          "Sentinel-2 NDVI: 0.12 (Aşırı seyrek vejetasyon)",
+          "Geçirimsiz Yüzey Oranı: %82 (Asfalt/Beton)"
+        ]
+      },
+      sinkhole: {
+        title: "🕳️ Karstik Obruk Oluşumu & Yeraltı Suyu (Konya)",
+        steps: [
+          "GRACE yerçekimi uydusu anomali verileri, 350 tarımsal kuyu su tablası derinliği ve litoloji formasyon sınırları.",
+          "Obruk çökmelerinin rastgele değil, su tablasının yılda 3 metreden fazla düştüğü Miyosen kireçtaşı fay hatları boyunca çizgiselleşmesi.",
+          "Aşırı tarımsal çekimle boşalan kireçtaşı mağara tavanlarının hidrostatik desteğini yitirerek aniden çökmesi.",
+          "InSAR zaman serisi analizinde yıllık 4.5 cm'lik dikey oturmanın tespit edilmesi ve sonrasında açılan obruklarla modelin doğrulanması."
+        ],
+        metrics: [
+          "Statik Su Seviyesi: -54.2 m (Yıllık düşüş: 3.4 m)",
+          "Litoloji: Neojen Karstik Kireçtaşı",
+          "InSAR Dikey Deformasyon: -42 mm/yıl"
+        ]
+      },
+      tectonics: {
+        title: "🌋 Levha Tektoniği & Fay Kuşakları Dağılımı",
+        steps: [
+          "Global GNSS istasyon hız vektörleri, USGS/AFAD odak mekanizması çözümleri ve derinlik odaklı sismik katalog verileri.",
+          "Deprem episantırlarının ve aktif volkanların levha sınırlarında (dalma-batma, doğrultu atımlı) belirgin hatlar oluşturması.",
+          "Levha hareketlerinden doğan elastik gerinim enerjisi fay zonlarında kilitlenir ve kritik sürtünme eşiği aşılınca kırılmayla boşalır.",
+          "GPS yıllık 24 mm'lik Anadolu levhası batıya kaçış hızının ve Coulomb stres transfer modellerinin tarihsel depremlerle kusursuz örtüşmesi."
+        ],
+        metrics: [
+          "GNSS Vektörü: 23.4 mm/yıl Batı-Güneybatı kaçışı",
+          "Coulomb Stres Artışı: +0.48 Bar (Kuzey Fay Zonu)",
+          "Odak Derinliği Dağılımı: 10-14 km (Sığ Odak)"
+        ]
+      }
+    };
+
+    const stepDetails = [
+      {
+        badge: "01. MEKÂNSAL VERİ DERİNLİĞİ",
+        title: "Veri (Spatial Data): Coğrafyanın Sayısal Temeli",
+        role: "Coğrafi veriyi sıradan tablolardan ayıran temel unsur koordinat ve mekânsal referanstır (WGS84, UTM). Yeryüzündeki her jeomorfolojik ve beşerî olgu piksel (Raster) veya nokta/çizgi/poligon (Vektör) olarak kayıt altına alınır.",
+        philosophy: "<strong>Tobler'ın 1. Coğrafya Kanunu:</strong> 'Her şey birbiriyle ilişkilidir; ancak yakın olan şeyler uzak olan şeylere göre daha çok ilişkilidir.' Tüm mekânsal interpolasyon ve CBS analizlerinin temel taşıdır.",
+        pitfall: "<strong>Konumsal Doğruluk & Çözünürlük Uyuşmazlığı:</strong> 1 km çözünürlüklü iklim verisi ile 5 metre çözünürlüklü parsel verisini kalibrasyonsuz eşleştirmek yanıltıcı sonuçlara yol açar.",
+        icon: "satellite",
+        colorClass: "cyan",
+        borderClass: "border-cyan-500/40",
+        sandboxBadge: "Aşama 1: Katman Yöneticisi",
+        renderSandbox: (container) => {
+          container.innerHTML = `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs text-slate-300">
+                <span>Aktif CBS Katman Sayısı:</span>
+                <span id="layerCount" class="font-mono font-bold text-cyan-400">4 Raster Katmanı</span>
+              </div>
+              <div class="space-y-1.5 text-[11px] font-mono">
+                <label class="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800 cursor-pointer">
+                  <input type="checkbox" checked onchange="toggleGISLayer('dem')" class="accent-cyan-500">
+                  <span>Sayısal Yükseklik Modeli (DEM 30m)</span>
+                </label>
+                <label class="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800 cursor-pointer">
+                  <input type="checkbox" checked onchange="toggleGISLayer('slope')" class="accent-cyan-500">
+                  <span>Eğim / Bakı Matrisi (Türetilmiş Raster)</span>
+                </label>
+                <label class="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800 cursor-pointer">
+                  <input type="checkbox" checked onchange="toggleGISLayer('geology')" class="accent-cyan-500">
+                  <span>MTA 1:25.000 Jeoloji & Litoloji Vektörü</span>
+                </label>
+              </div>
+              <button onclick="addSimulatedStation()" class="w-full py-2 px-3 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                Yeni Meteoroloji / GPS İstasyonu Ekle
+              </button>
+            </div>
+          `;
+          lucide.createIcons();
+        }
+      },
+      {
+        badge: "02. MEKÂNSAL DAĞILIŞ & ÖRÜNTÜ",
+        title: "Örüntü (Spatial Pattern): Coğrafi Dağılış İlkesi",
+        role: "Coğrafyanın kurucu ilkesi 'Dağılış'tır. Ham veriler haritalandığında olayların yeryüzündeki dağılım biçimleri incelenir: Rastgele mi, homojen mi, yoksa belirli vadiler veya fay zonları boyunca kümelenmiş mi?",
+        philosophy: "<strong>Mekânsal Otokorelasyon (Moran's I & Getis-Ord Gi*):</strong> Bir noktanın değeri komşularının değerine benziyorsa pozitif otokorelasyon vardır. Sıcak noktalar tesadüf değil, fiziksel bir sürecin işaretidir.",
+        pitfall: "<strong>MAUP (Modifiable Areal Unit Problem):</strong> Alansal sınırların (örneğin havza sınırları yerine idari il sınırları kullanılması) verinin dağılım örüntüsünü yapay olarak gizlemesi veya abartması.",
+        icon: "radar",
+        colorClass: "emerald",
+        borderClass: "border-emerald-500/40",
+        sandboxBadge: "Aşama 2: Moran's I Dağılım Testi",
+        renderSandbox: (container) => {
+          container.innerHTML = `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs text-slate-300">
+                <span>Mekânsal Kümelenme (Moran's I):</span>
+                <span id="moranStatusText" class="font-mono font-bold text-emerald-400">+0.81 (Kuvvetli Sıcak Nokta)</span>
+              </div>
+              <input type="range" id="spatialClusterSlider" min="10" max="100" value="80" oninput="updateSpatialPattern(this.value)" class="w-full accent-emerald-500 cursor-pointer">
+              <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>Dağınık / Rastgele (I ≈ 0)</span>
+                <span>Fay Boyu Kümelenmiş (I → +1)</span>
+              </div>
+              <div class="p-2.5 bg-slate-900 rounded-xl border border-slate-800 text-xs text-emerald-300 font-mono flex items-center justify-between">
+                <span>Z-Skoru: 5.48</span>
+                <span class="text-emerald-400 font-bold">p &lt; 0.001 (Tesadüf Değil)</span>
+              </div>
+            </div>
+          `;
+        }
+      },
+      {
+        badge: "03. COĞRAFİ NEDENSELLİK & HİPOTEZ",
+        title: "Önerme (Hypothesis): Mekânsal Sebep-Sonuç Kurgusu",
+        role: "Örüntüyü tespit ettikten sonra coğrafyacı 'Neden burada ve neden şimdi?' sorusunu sorar. Jeomorfolojik süreçler, termodinamik yasalar veya insan-mekân etkileşimi üzerinden sınanabilir bir nedensellik tezi oluşturulur.",
+        philosophy: "<strong>Çok Faktörlü Etkileşim:</strong> Coğrafi fenomenler tek bir sebebe indirgenemez. Eğim tek başına heyelan yapmaz; litoloji, yeraltı suyu doygunluğu ve bitki kök tutuculuğu ile birlikte çalışır.",
+        pitfall: "<strong>Korelasyonu Doğrudan Neden Sanma:</strong> Örneğin bir bölgede ormansızlaşma ile heyelanın birlikte görülmesi her zaman tek nedenin orman kesimi olduğunu göstermez; eğim açısı ve tabaka eğimi yönü asıl belirleyici olabilir.",
+        icon: "git-merge",
+        colorClass: "amber",
+        borderClass: "border-amber-500/40",
+        sandboxBadge: "Aşama 3: Faktör Ağırlıklandırıcı",
+        renderSandbox: (container) => {
+          container.innerHTML = `
+            <div class="space-y-3">
+              <div class="text-xs text-slate-300 flex justify-between">
+                <span>Simüle Edilen Eğim & Yağış Seviyesi:</span>
+                <span id="riskFactorLabel" class="font-bold text-amber-400 font-mono">%42 Eğim / 120 mm Yağış</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="simulateHypothesisTrigger(true)" class="py-2 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/40 text-amber-300 text-xs font-semibold">
+                  Tetikleyiciyi Zorla (Aşırı Yağış)
+                </button>
+                <button onclick="simulateHypothesisTrigger(false)" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                  Temel Koşula Dön
+                </button>
+              </div>
+              <div id="hypoGeoFeedback" class="p-2.5 bg-amber-950/40 border border-amber-800/40 rounded-xl text-xs font-mono text-amber-200">
+                Eşik Değer Aşıldı: Kritik kayma düzleminde gözenek suyu basıncı direnç kuvvetini aştı.
+              </div>
+            </div>
+          `;
+        }
+      },
+      {
+        badge: "04. CBS MODELLEME & SAHA TESTİ",
+        title: "Kanıtlama (Proof & GIS): Duyarlılık Haritalama & Teyit",
+        role: "Kurulan hipotez; AHP (Analitik Hiyerarşi Süreci), Lojistik Regresyon veya Makine Öğrenimi (Random Forest, XGBoost) modellerine dökülerek tüm havza için bir kestirim üretilir ve geçmiş/mevcut olaylarla test edilir.",
+        philosophy: "<strong>Yersel Doğruluk (Ground Truth) & ROC-AUC:</strong> Bir modelin başarısı sadece haritanın şıklığıyla değil, bağımsız test verileriyle yapılan ROC eğrisi altındaki alan (AUC) değeri ve arazideki GPS gözlemleriyle ispatlanır.",
+        pitfall: "<strong>Aşırı Öğrenme (Overfitting):</strong> Modelin yalnızca çalışılan küçük bir vadiye uyup genelleştirilememesi ya da değişkenler arasında çoklu doğrusal bağlantı (Multicollinearity) bulunması.",
+        icon: "globe-2",
+        colorClass: "violet",
+        borderClass: "border-violet-500/40",
+        sandboxBadge: "Aşama 4: Model Simülasyonu",
+        renderSandbox: (container) => {
+          container.innerHTML = `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between text-xs text-slate-300">
+                <span>Model Algoritması:</span>
+                <span class="font-mono text-violet-300 font-bold">Random Forest + InSAR</span>
+              </div>
+              <button id="runGeoExpBtn" onclick="runGeographicalValidation()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-600 hover:opacity-90 text-white font-bold text-xs shadow-lg shadow-violet-600/30 transition flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-4 h-4"></i>
+                Mekânsal Modeli Çalıştır & Saha Doğrulaması Yap
+              </button>
+              <div class="p-2.5 bg-violet-950/40 border border-violet-800/40 rounded-xl text-xs font-mono text-violet-200 flex items-center justify-between">
+                <span>ROC-AUC: 0.92</span>
+                <span class="text-emerald-400 font-bold">✓ İstatistiksel Doğruluk Yüksek</span>
+              </div>
+            </div>
+          `;
+          lucide.createIcons();
+        }
+      }
+    ];
+
+    const quizQuestions = [
+      {
+        question: "'Her şey birbiriyle ilişkilidir; ancak yakın şeyler uzak şeylere göre daha çok ilişkilidir.' ilkesi coğrafyada ne adla bilinir?",
+        options: [
+          "Ockham'ın Coğrafi Usturası",
+          "Tobler'ın Birinci Coğrafya Kanunu (Mekânsal Otokorelasyon)",
+          "Davis'in Jeomorfolojik Aşınım Döngüsü",
+          "Koppen İklim Sınıflandırma Prensibi"
+        ],
+        correct: 1,
+        explanation: "1970 yılında Waldo Tobler tarafından ortaya atılan bu yasa, mekânsal bağımlılık ve CBS enterpolasyonlarının temel teorik zeminini oluşturur."
+      },
+      {
+        question: "Farklı alansal sınır agregasyonlarının (örneğin ilçe yerine grid hücreleri kullanılmasının) korelasyon sonuçlarını değiştirmesi durumuna ne denir?",
+        options: [
+          "MAUP (Değişken Alansal Birim Problemi)",
+          "Doğrusal Enterpolasyon Hatası",
+          "Spektral Yansıma Sapması",
+          "Karasallık Katsayısı"
+        ],
+        correct: 0,
+        explanation: "MAUP (Modifiable Areal Unit Problem), coğrafi analizlerde sınırların ve ölçeğin istatistiksel sonuçları doğrudan etkilediğini gösteren kritik bir metodolojik sorundur."
+      },
+      {
+        question: "Uzaktan algılamada Landsat termal kızılötesi bandı (TIRS) ile elde edilen Yüzey Sıcaklığı (LST) ile NDVI (Bitki Örtüsü) arasındaki negatif korelasyon hangi coğrafi gerçeği kanıtlar?",
+        options: [
+          "Yüksek dağların her zaman daha fazla yağış aldığını",
+          "Yeşil ve vejetatif alanların terleme (evapotranspirasyon) yoluyla yüzeyleri soğutarak kentsel ısı adası etkisini azalttığını",
+          "Toprak erozyonunun sadece rüzgârla gerçekleştiğini",
+          "Karstik mağaraların sadece nehir yataklarında oluştuğunu"
+        ],
+        correct: 1,
+        explanation: "NDVI arttıkça LST sıcaklık değerlerinin düşmesi, bitki örtüsünün gölgeleme ve terleme-buharlaşma ile kentsel yüzeyleri serinlettiğinin güçlü bir kanıtıdır."
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+
+    function selectStep(stepIndex) {
+      currentStep = stepIndex;
+
+      // Update card boundaries and glowing indicators
+      for (let i = 0; i < 4; i++) {
+        const card = document.getElementById(`card-${i}`);
+        card.classList.remove('border-cyan-400', 'border-emerald-400', 'border-amber-400', 'border-violet-400', 'glow-cyan', 'glow-emerald', 'glow-amber', 'glow-violet');
+        if (i === stepIndex) {
+          card.classList.remove('border-slate-800');
+          if (i === 0) card.classList.add('border-cyan-400', 'glow-cyan');
+          if (i === 1) card.classList.add('border-emerald-400', 'glow-emerald');
+          if (i === 2) card.classList.add('border-amber-400', 'glow-amber');
+          if (i === 3) card.classList.add('border-violet-400', 'glow-violet');
+        } else {
+          card.classList.add('border-slate-800');
+        }
+      }
+
+      // Update deep-dive content
+      const detail = stepDetails[stepIndex];
+      const iconBox = document.getElementById('detailIconBox');
+      const badge = document.getElementById('detailBadge');
+
+      iconBox.className = `w-12 h-12 rounded-2xl bg-${detail.colorClass}-500/10 border border-${detail.colorClass}-500/30 flex items-center justify-center text-${detail.colorClass}-400`;
+      badge.className = `text-[11px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-${detail.colorClass}-500/20 text-${detail.colorClass}-300 border border-${detail.colorClass}-500/30`;
+      badge.innerText = detail.badge;
+
+      document.getElementById('detailStepIcon').setAttribute('data-lucide', detail.icon);
+      document.getElementById('detailTitle').innerText = detail.title;
+      document.getElementById('detailRole').innerHTML = detail.role;
+      document.getElementById('detailPhilosophy').innerHTML = detail.philosophy;
+      document.getElementById('detailPitfall').innerHTML = detail.pitfall;
+      document.getElementById('sandboxBadge').innerText = detail.sandboxBadge;
+
+      const nextBtn = document.getElementById('nextStepBtn');
+      if (stepIndex === 3) {
+        nextBtn.innerHTML = `<span>Başa Dön</span><i data-lucide="rotate-ccw" class="w-4 h-4"></i>`;
+      } else {
+        nextBtn.innerHTML = `<span>Sonraki Aşama</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+      }
+
+      // Render interactive sandbox
+      const sandboxArea = document.getElementById('sandboxArea');
+      detail.renderSandbox(sandboxArea);
+      
+      lucide.createIcons();
+    }
+
+    function nextStep() {
+      if (currentStep < 3) {
+        selectStep(currentStep + 1);
+      } else {
+        selectStep(0);
+      }
+    }
+
+    function resetFlow() {
+      selectStep(0);
+    }
+
+    function updateScenario(key) {
+      currentScenario = key;
+      const data = scenarios[key];
+
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`scenario-text-${i}`).innerText = `"${data.steps[i]}"`;
+      }
+
+      renderDataStream(data.metrics);
+      selectStep(currentStep);
+    }
+
+    function renderDataStream(metrics) {
+      const container = document.getElementById('dataMiniStream');
+      container.innerHTML = '';
+      metrics.forEach(m => {
+        const div = document.createElement('div');
+        div.className = "truncate hover:text-cyan-300 transition text-[10px]";
+        div.innerText = `> ${m}`;
+        container.appendChild(div);
+      });
+    }
+
+    // Canvas spatial point cluster visualization
+    function drawSpatialCanvas(clusterDegree = 80) {
+      const canvas = document.getElementById('miniSpatialCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Draw faint topographic contours
+      ctx.strokeStyle = "rgba(71, 85, 105, 0.3)";
+      ctx.lineWidth = 1;
+      for (let r = 15; r < w; r += 30) {
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Scatter points
+      const numPoints = 35;
+      const clusterWeight = clusterDegree / 100;
+
+      for (let i = 0; i < numPoints; i++) {
+        let x, y;
+        if (Math.random() < clusterWeight) {
+          // Clustered along a fault or steep valley
+          const t = Math.random();
+          x = (w * 0.2) + (w * 0.6) * t + (Math.random() - 0.5) * 20;
+          y = (h * 0.2) + (h * 0.6) * t + (Math.random() - 0.5) * 12;
+        } else {
+          // Random scatter
+          x = Math.random() * w;
+          y = Math.random() * h;
+        }
+
+        ctx.fillStyle = (clusterDegree > 50) ? "#10b981" : "#f59e0b";
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function updateSpatialPattern(val) {
+      drawSpatialCanvas(parseInt(val));
+      const moranVal = document.getElementById('moranVal');
+      const statusText = document.getElementById('moranStatusText');
+      if (val > 65) {
+        if (moranVal) moranVal.innerText = "I = +0.81 (Kümelenmiş)";
+        if (statusText) statusText.innerText = "+0.81 (Kuvvetli Sıcak Nokta)";
+      } else if (val > 35) {
+        if (moranVal) moranVal.innerText = "I = +0.34 (Zayıf Kümelenme)";
+        if (statusText) statusText.innerText = "+0.34 (Orta Düzey Dağılım)";
+      } else {
+        if (moranVal) moranVal.innerText = "I = -0.04 (Rastgele Dağılış)";
+        if (statusText) statusText.innerText = "-0.04 (Rastgele / Homojen)";
+      }
+    }
+
+    function toggleGISLayer(layerName) {
+      const feedback = document.getElementById('sandboxFeedbackText');
+      feedback.innerText = `Katman güncellendi: ${layerName.toUpperCase()} raster matrisi bindirildi.`;
+    }
+
+    let stationCount = 12;
+    function addSimulatedStation() {
+      stationCount++;
+      const feedback = document.getElementById('sandboxFeedbackText');
+      feedback.innerText = `GPS/Meteoroloji İstasyonu #${stationCount} eklendi. Koordinat: 40.${Math.floor(Math.random()*800+100)}°N, 39.${Math.floor(Math.random()*800+100)}°E.`;
+    }
+
+    function simulateHypothesisTrigger(exceeds) {
+      const feedback = document.getElementById('hypoGeoFeedback');
+      if (exceeds) {
+        feedback.innerHTML = `<span class="text-rose-400 font-bold">⚠️ Kritik Eşik Aşıldı:</span> Yağış > 100mm/24h. Efektif kohezyon direnci aşıldı, kütle hareketi tetiklendi.`;
+      } else {
+        feedback.innerHTML = `<span class="text-emerald-400 font-bold">✓ Denge Durumu:</span> Hidrostatik basınç eşiğin altında. Yamaç stabilitesi korunuyor.`;
+      }
+    }
+
+    function runGeographicalValidation() {
+      const btn = document.getElementById('runGeoExpBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Raster Katmanlar Üst Üste Bindiriliyor...`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Modelleme Tamamlandı (Yeniden Hesapla)`;
+        document.getElementById('sandboxFeedbackText').innerText = "CBS Duyarlılık Haritası InSAR verisiyle örtüştü: ROC-AUC = 0.92, Doğruluk = %92.4.";
+        lucide.createIcons();
+
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 45,
+            spread: 65,
+            origin: { y: 0.7 }
+          });
+        }
+      }, 950);
+    }
+
+    function openQuiz() {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      document.getElementById('quizScoreText').innerText = `Skor: 0`;
+      loadQuizQuestion();
+      document.getElementById('quizModal').classList.remove('hidden');
+    }
+
+    function closeQuiz() {
+      document.getElementById('quizModal').classList.add('hidden');
+    }
+
+    function loadQuizQuestion() {
+      const q = quizQuestions[currentQuizIndex];
+      document.getElementById('quizQuestion').innerText = q.question;
+      document.getElementById('quizProgressText').innerText = `Soru ${currentQuizIndex + 1} / ${quizQuestions.length}`;
+
+      const optionsBox = document.getElementById('quizOptions');
+      optionsBox.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3 rounded-xl bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs sm:text-sm text-slate-200 transition";
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + idx)})</strong> ${opt}`;
+        btn.onclick = () => handleAnswer(idx);
+        optionsBox.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(selectedIndex) {
+      const q = quizQuestions[currentQuizIndex];
+      const isCorrect = selectedIndex === q.correct;
+
+      if (isCorrect) {
+        quizScore += 10;
+        document.getElementById('quizScoreText').innerText = `Skor: ${quizScore}`;
+      }
+
+      const optionsBox = document.getElementById('quizOptions');
+      const buttons = optionsBox.querySelectorAll('button');
+
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === q.correct) {
+          btn.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+        } else if (idx === selectedIndex && !isCorrect) {
+          btn.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-200');
+        }
+      });
+
+      const exp = document.createElement('div');
+      exp.className = `p-3 mt-3 rounded-xl text-xs ${isCorrect ? 'bg-emerald-950/50 text-emerald-300 border border-emerald-800' : 'bg-slate-800 text-slate-300'}`;
+      exp.innerHTML = `<strong>${isCorrect ? 'Tebrikler!' : 'Coğrafi Bilgi Notu:'}</strong> ${q.explanation}`;
+      optionsBox.appendChild(exp);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = "w-full mt-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition";
+      if (currentQuizIndex < quizQuestions.length - 1) {
+        nextBtn.innerText = "Sonraki Soruya Geç ➔";
+        nextBtn.onclick = () => {
+          currentQuizIndex++;
+          loadQuizQuestion();
+        };
+      } else {
+        nextBtn.innerText = "Testi Tamamla";
+        nextBtn.onclick = () => {
+          optionsBox.innerHTML = `
+            <div class="text-center py-6 space-y-3">
+              <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+                <i data-lucide="award" class="w-6 h-6"></i>
+              </div>
+              <h4 class="text-lg font-bold text-slate-100">Coğrafi Metot Testi Tamamlandı!</h4>
+              <p class="text-xs text-slate-300">Skorunuz: <span class="font-bold text-emerald-400">${quizScore} / ${quizQuestions.length * 10}</span></p>
+              <button onclick="closeQuiz()" class="mt-4 px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Pencereyi Kapat</button>
+            </div>
+          `;
+          lucide.createIcons();
+          if (typeof confetti === 'function') {
+            confetti({ particleCount: 75, spread: 75 });
+          }
+        };
+      }
+      optionsBox.appendChild(nextBtn);
+    }
+
+    // Theme toggler
+    const themeBtn = document.getElementById('themeToggleBtn');
+    themeBtn.addEventListener('click', () => {
+      isDarkMode = !isDarkMode;
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.remove('bg-slate-50', 'text-slate-900');
+        document.body.classList.add('bg-slate-950', 'text-slate-100');
+        document.getElementById('themeSun').classList.add('hidden');
+        document.getElementById('themeMoon').classList.remove('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('bg-slate-950', 'text-slate-100');
+        document.body.classList.add('bg-slate-50', 'text-slate-900');
+        document.getElementById('themeMoon').classList.add('hidden');
+        document.getElementById('themeSun').classList.remove('hidden');
+      }
+      drawSpatialCanvas();
+    });
+
+    window.addEventListener('load', () => {
+      lucide.createIcons();
+      updateScenario('landslide');
+      selectStep(0);
+      drawSpatialCanvas(80);
+
+      document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+        updateScenario(e.target.value);
+      });
+
+      document.getElementById('openQuizBtn').addEventListener('click', openQuiz);
+    });
+  </script>
+</body>
+</html>
